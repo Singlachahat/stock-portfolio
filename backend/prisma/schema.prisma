@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  password  String
+  portfolio Portfolio?
+  createdAt DateTime  @default(now())
+}
+
+model Portfolio {
+  id        String    @id @default(uuid())
+  name      String
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id])
+  holdings  Holding[]
+  createdAt DateTime  @default(now())
+}
+
+model Stock {
+  id        String   @id @default(uuid())
+  symbol    String   @unique
+  name      String
+  sector    String
+  exchange  String
+  holdings  Holding[]
+  cache     MarketCache?
+}
+
+model Holding {
+  id            String    @id @default(uuid())
+  portfolioId   String
+  stockId       String
+  quantity      Int
+  purchasePrice Float
+
+  portfolio Portfolio @relation(fields: [portfolioId], references: [id])
+  stock     Stock     @relation(fields: [stockId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model MarketCache {
+  id            String   @id @default(uuid())
+  stockId       String   @unique
+  cmp           Float
+  peRatio       Float?
+  latestEarning String?
+  updatedAt     DateTime @updatedAt
+
+  stock Stock @relation(fields: [stockId], references: [id])
+}
