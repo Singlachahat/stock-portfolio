@@ -15,6 +15,10 @@ app.use("/api/portfolios", portfolioRoutes);
 app.use("/api/stocks", stocksRoutes);
 app.use("/api/market", marketRoutes);
 
+app.get("/", (_req, res) => {
+  res.redirect(302, "/health");
+});
+
 app.get("/health", (_req, res) => {
   res.send("API running");
 });
