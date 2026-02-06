@@ -7,7 +7,8 @@ import marketRoutes from "./routes/market.routes";
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: "*" }));
+
 app.use(express.json());
 
 app.use("/api/users", userRoutes);
@@ -16,11 +17,10 @@ app.use("/api/stocks", stocksRoutes);
 app.use("/api/market", marketRoutes);
 
 app.get("/", (_req, res) => {
-  res.redirect(302, "/health");
+  res.send("Backend running 🚀");
 });
 
 app.get("/health", (_req, res) => {
   res.send("API running");
 });
-
 export default app;
