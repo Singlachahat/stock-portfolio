@@ -52,7 +52,7 @@ export default function SectorAllocationChart({ sectors }: SectorAllocationChart
               ))}
             </Pie>
             <Tooltip
-              formatter={(value: number) => formatCurrency(value)}
+              formatter={(value) => formatCurrency(typeof value === "number" ? value : 0)}
               contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
             />
             <Legend />
