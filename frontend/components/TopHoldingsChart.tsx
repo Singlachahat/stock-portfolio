@@ -48,7 +48,7 @@ export default function TopHoldingsChart({
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
               type="number"
-              tickFormatter={(v) => `${(v / 1e5).toFixed(1)}L`}
+              tickFormatter={(v) => `${((v ?? 0) / 1e5).toFixed(1)}L`}
               stroke="#6b7280"
             />
             <YAxis
@@ -59,7 +59,7 @@ export default function TopHoldingsChart({
               tick={{ fontSize: 12 }}
             />
             <Tooltip
-              formatter={(value: number) => [formatCurrency(value), "Value"]}
+              formatter={(value) => [formatCurrency(typeof value === "number" ? value : 0), "Value"]}
               contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
             />
             <Bar dataKey="value" fill="#2563eb" radius={[0, 4, 4, 0]} />
