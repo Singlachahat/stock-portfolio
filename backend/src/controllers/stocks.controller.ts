@@ -66,19 +66,19 @@ export async function searchStocks(req: Request, res: Response) {
       newsCount: 0,
     });
 
-    const stocks = searchResults.quotes.map((quote: any) => ({
-      symbol: quote.symbol,
-      name: quote.shortname || quote.longname || quote.symbol,
-      exchange: quote.exchange || quote.exchDisp || "UNKNOWN",
-      type: quote.quoteType || quote.typeDisp || "EQUITY",
-    }));
+    const quotes = Array.isArray(searchResults?.quotes) ? searchResults.quotes : [];
+    const stocks = quotes
+      .filter((q: any) => q && (q.symbol || q.shortname || q.longname))
+      .map((quote: any) => ({
+        symbol: quote.symbol ?? quote.shortname ?? quote.longname ?? "—",
+        name: quote.shortname || quote.longname || quote.symbol || "—",
+        exchange: quote.exchange || quote.exchDisp || "UNKNOWN",
+        type: quote.quoteType || quote.typeDisp || "EQUITY",
+      }));
 
     return res.json({ stocks });
   } catch (err: any) {
     console.error("Stock search error:", err);
-    return res.status(500).json({ 
-      error: "Failed to search stocks",
-      details: err.message 
-    });
+    return res.status(200).json({ stocks: [] });
   }
 }

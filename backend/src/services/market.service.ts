@@ -1,6 +1,7 @@
 import YahooFinance from "yahoo-finance2";
 import { prisma } from "../lib/prisma";
 import { fetchGoogleFinanceQuote } from "./google-finance.service";
+import { getYahooViaRapid } from "./rapidapi.service";
 
 export interface MarketQuote {
   symbol: string;
@@ -60,28 +61,39 @@ export async function refreshMarketCache(symbols: string[]): Promise<{ updated: 
 
     const peRatio = googleQuote.peRatio ?? yahooQuote.peRatio;
     const latestEarning = googleQuote.latestEarning ?? yahooQuote.latestEarning;
-    const cmp = yahooQuote.cmp;
+    let cmp = yahooQuote.cmp;
 
-    if (yahooQuote.error) {
-      await prisma.marketCache.upsert({
-        where: { stockId: stock.id },
-        create: {
-          stockId: stock.id,
-          cmp: 0,
-          peRatio: peRatio,
-          latestEarning: latestEarning,
-          lastError: yahooQuote.error,
-        },
-        update: {
-          cmp: 0,
-          peRatio: peRatio,
-          latestEarning: latestEarning,
-          lastError: yahooQuote.error,
-        },
-      });
-      errors.push(`${symbol}: ${yahooQuote.error}`);
-      await delay(300);
-      continue;
+    if (yahooQuote.error && cmp === 0) {
+      let rapid: { cmp: number; error?: string } = { cmp: 0 };
+      try {
+        rapid = await getYahooViaRapid(symbol);
+      } catch (_) {
+        rapid = { cmp: 0, error: "RapidAPI request failed" };
+      }
+      await delay(500);
+      if (!rapid.error && rapid.cmp > 0) {
+        cmp = rapid.cmp;
+      } else {
+        await prisma.marketCache.upsert({
+          where: { stockId: stock.id },
+          create: {
+            stockId: stock.id,
+            cmp: 0,
+            peRatio: peRatio,
+            latestEarning: latestEarning,
+            lastError: yahooQuote.error,
+          },
+          update: {
+            cmp: 0,
+            peRatio: peRatio,
+            latestEarning: latestEarning,
+            lastError: yahooQuote.error,
+          },
+        });
+        errors.push(`${symbol}: ${yahooQuote.error}`);
+        await delay(300);
+        continue;
+      }
     }
 
     await prisma.marketCache.upsert({
@@ -108,7 +120,32 @@ export async function refreshMarketCache(symbols: string[]): Promise<{ updated: 
 }
 
 export async function getQuoteForSymbol(symbol: string): Promise<MarketQuote> {
-  return fetchYahooQuote(String(symbol).trim().toUpperCase());
+  const normalized = String(symbol).trim().toUpperCase();
+  const yahoo = await fetchYahooQuote(normalized);
+  if (!yahoo.error && yahoo.cmp > 0) {
+    return yahoo;
+  }
+  let rapid: { cmp: number; error?: string } = { cmp: 0 };
+  try {
+    rapid = await getYahooViaRapid(normalized);
+  } catch (_) {
+    rapid = { cmp: 0, error: "RapidAPI request failed" };
+  }
+  if (!rapid.error && rapid.cmp > 0) {
+    return {
+      symbol: normalized,
+      cmp: rapid.cmp,
+      peRatio: yahoo.peRatio ?? null,
+      latestEarning: yahoo.latestEarning ?? null,
+    };
+  }
+  return {
+    symbol: normalized,
+    cmp: 0,
+    peRatio: null,
+    latestEarning: null,
+    error: yahoo.error ?? rapid.error ?? "Failed to fetch quote",
+  };
 }
 
 export async function getSymbolsByPortfolioId(portfolioId: string): Promise<string[]> {
