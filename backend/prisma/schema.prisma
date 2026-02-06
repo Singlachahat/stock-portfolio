@@ -1,9 +1,9 @@
 generator client {
   provider = "prisma-client-js"
 }
-
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -38,13 +38,15 @@ model Holding {
   id            String    @id @default(uuid())
   portfolioId   String
   stockId       String
-  quantity      Int
+  quantity      Float
   purchasePrice Float
 
   portfolio Portfolio @relation(fields: [portfolioId], references: [id])
   stock     Stock     @relation(fields: [stockId], references: [id])
 
   createdAt DateTime @default(now())
+
+  @@unique([portfolioId, stockId])
 }
 
 model MarketCache {
@@ -53,6 +55,7 @@ model MarketCache {
   cmp           Float
   peRatio       Float?
   latestEarning String?
+  lastError     String?
   updatedAt     DateTime @updatedAt
 
   stock Stock @relation(fields: [stockId], references: [id])
